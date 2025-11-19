@@ -1,0 +1,16 @@
+[
+  {
+    "UserId": 1,
+    "Fullname": "Студент1",
+    "Email": "student@example.com",
+    "PasswordHash": "student123",
+    "Role": "student"
+  },
+  {
+    "UserId": 2,
+    "Fullname": "Викладач1",
+    "Email": "teacher@example.com",
+    "PasswordHash": "teacher123",
+    "Role": "teacher"
+  }
+]
