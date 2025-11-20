@@ -65,6 +65,36 @@ public class DatabaseHelper
                 cmd.ExecuteNonQuery();
             }
         }
+        AddDefaultUsersIfEmpty();
+    }
+
+    private static void AddDefaultUsersIfEmpty()
+    {
+        using (SQLiteConnection conn = new SQLiteConnection(ConnectionString))
+        {
+            conn.Open();
+            using (SQLiteCommand cmd = new SQLiteCommand("SELECT COUNT(*) FROM Users", conn))
+            {
+                long count = (long)cmd.ExecuteScalar();
+                if (count > 0) return;
+            }
+        }
+
+        RegisterUser(new User
+        {
+            FullName = "Кулік Юлія Вікторівна", 
+            Email = "TTest@gmail.com",
+            Password = "123456",
+            IsTeacher = true
+        }); 
+
+        RegisterUser(new User
+        {
+            FullName = "Нижегольцев Владислав",
+            Email = "STest@gmail.com",
+            Password = "qwe123",
+            IsTeacher = false
+        });
     }
 
     public static void RegisterUser(User user)

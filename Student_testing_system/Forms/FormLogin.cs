@@ -50,6 +50,8 @@ namespace Student_testing_system
                 }
 
                 this.Hide();
+                nextForm.Show();
+                nextForm.FormClosed += (s, args) => Application.Exit();
             }
             else
             {
