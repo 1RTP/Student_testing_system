@@ -51,6 +51,8 @@
   <ItemGroup>
     <Compile Include="DataService.cs" />
     <Compile Include="dbClass\DataBaseHelper.cs" />
+    <Compile Include="dbClass\PasswordHelper.cs" />
+    <Compile Include="dbClass\User.cs" />
     <Compile Include="Forms\FormLogin.cs">
       <SubType>Form</SubType>
     </Compile>
