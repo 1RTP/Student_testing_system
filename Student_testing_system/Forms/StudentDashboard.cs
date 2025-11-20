@@ -1,12 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using Student_testing_system.dbClass;
 
 namespace Student_testing_system.Forms
 {
@@ -18,7 +12,7 @@ namespace Student_testing_system.Forms
         {
             InitializeComponent();
             currentUser = user;
-            this.Text = $"Student - {user.Fullname}";
+            this.Text = $"Student - {user.FullName}";
         }
 
         private void StudentDashboard_Load(object sender, EventArgs e)
