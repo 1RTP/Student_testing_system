@@ -56,6 +56,24 @@
     <Compile Include="dbClass\PasswordHelper.cs" />
     <Compile Include="dbClass\Session.cs" />
     <Compile Include="dbClass\User.cs" />
+    <Compile Include="Forms\FormCreateQuestion.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormCreateQuestion.Designer.cs">
+      <DependentUpon>FormCreateQuestion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\FormCreateTest.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormCreateTest.Designer.cs">
+      <DependentUpon>FormCreateTest.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Forms\FormEditTest.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FormEditTest.Designer.cs">
+      <DependentUpon>FormEditTest.cs</DependentUpon>
+    </Compile>
     <Compile Include="Forms\FormLogin.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -76,6 +94,15 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Forms\FormCreateQuestion.resx">
+      <DependentUpon>FormCreateQuestion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormCreateTest.resx">
+      <DependentUpon>FormCreateTest.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Forms\FormEditTest.resx">
+      <DependentUpon>FormEditTest.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Forms\FormLogin.resx">
       <DependentUpon>FormLogin.cs</DependentUpon>
     </EmbeddedResource>

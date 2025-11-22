@@ -229,4 +229,183 @@ public class DatabaseHelper
             }
         }
     }
+
+    public static void DeleteTest(int testId)
+    {
+        using (var conn = new SQLiteConnection(ConnectionString))
+        {
+            conn.Open();
+
+            string sql =
+                "DELETE FROM Answers WHERE question_id IN (SELECT question_id FROM Questions WHERE test_id = @id);" +
+                "DELETE FROM Questions WHERE test_id = @id;" +
+                "DELETE FROM Tests WHERE test_id = @id;";
+
+            using (var cmd = new SQLiteCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", testId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static void DeleteQuestion(int questionId)
+    {
+        using (var conn = new SQLiteConnection(ConnectionString))
+        {
+            conn.Open();
+            string sql = "DELETE FROM Answers WHERE question_id = @qid; DELETE FROM Questions WHERE question_id = @qid;";
+            using (var cmd = new SQLiteCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@qid", questionId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static Test GetTestById(int testId)
+    {
+        Test test = null;
+
+        using (var conn = new SQLiteConnection(ConnectionString))
+        {
+            conn.Open();
+            string sqlTest = "SELECT * FROM Tests WHERE test_id = @id";
+            using (var cmd = new SQLiteCommand(sqlTest, conn))
+            {
+                cmd.Parameters.AddWithValue("@id", testId);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        test = new Test
+                        {
+                            Id = Convert.ToInt32(reader["test_id"]),
+                            Title = reader["title"].ToString(),
+                            Description = reader["description"].ToString(),
+                            Questions = new List<Question>()
+                        };
+                    }
+                }
+            }
+
+            if (test != null)
+            {
+                string sqlQuestions = "SELECT * FROM Questions WHERE test_id = @tid";
+                using (var cmdQ = new SQLiteCommand(sqlQuestions, conn))
+                {
+                    cmdQ.Parameters.AddWithValue("@tid", test.Id);
+                    using (var readerQ = cmdQ.ExecuteReader())
+                    {
+                        while (readerQ.Read())
+                        {
+                            Question q = new Question
+                            {
+                                Id = Convert.ToInt32(readerQ["question_id"]),
+                                Text = readerQ["question_text"].ToString(),
+                                Answers = new List<Answer>()
+                            };
+
+                            string sqlAnswers = "SELECT * FROM Answers WHERE question_id = @qid";
+                            using (var cmdA = new SQLiteCommand(sqlAnswers, conn))
+                            {
+                                cmdA.Parameters.AddWithValue("@qid", q.Id);
+                                using (var readerA = cmdA.ExecuteReader())
+                                {
+                                    while (readerA.Read())
+                                    {
+                                        q.Answers.Add(new Answer
+                                        {
+                                            Id = Convert.ToInt32(readerA["answer_id"]),
+                                            Text = readerA["answer_text"].ToString(),
+                                            IsCorrect = Convert.ToInt32(readerA["is_correct"]) == 1
+                                        });
+                                    }
+                                }
+                            }
+
+                            test.Questions.Add(q);
+                        }
+                    }
+                }
+            }
+        }
+        return test;
+    }
+
+    public static void UpdateTest(Test test)
+    {
+        using (var conn = new SQLiteConnection(ConnectionString))
+        {
+            conn.Open();
+            using (var transaction = conn.BeginTransaction())
+            {
+                try
+                {
+                    string sqlTest = "UPDATE Tests SET title=@title, description=@desc WHERE test_id=@id";
+                    using (var cmd = new SQLiteCommand(sqlTest, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@title", test.Title);
+                        cmd.Parameters.AddWithValue("@desc", test.Description);
+                        cmd.Parameters.AddWithValue("@id", test.Id);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    foreach (var q in test.Questions)
+                    {
+                        if (q.Id == 0)
+                        {
+                            string sqlQ = "INSERT INTO Questions (test_id, question_text) VALUES (@tid,@text); SELECT last_insert_rowid();";
+                            using (var cmd = new SQLiteCommand(sqlQ, conn))
+                            {
+                                cmd.Parameters.AddWithValue("@tid", test.Id);
+                                cmd.Parameters.AddWithValue("@text", q.Text);
+                                q.Id = (int)(long)cmd.ExecuteScalar();
+                            }
+                        }
+                        else
+                        {
+                            string sqlQ = "UPDATE Questions SET question_text=@text WHERE question_id=@qid";
+                            using (var cmd = new SQLiteCommand(sqlQ, conn))
+                            {
+                                cmd.Parameters.AddWithValue("@text", q.Text);
+                                cmd.Parameters.AddWithValue("@qid", q.Id);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        foreach (var a in q.Answers)
+                        {
+                            if (a.Id == 0) 
+                            {
+                                string sqlA = "INSERT INTO Answers (question_id, answer_text, is_correct) VALUES (@qid,@text,@correct); SELECT last_insert_rowid();";
+                                using (var cmd = new SQLiteCommand(sqlA, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@qid", q.Id);
+                                    cmd.Parameters.AddWithValue("@text", a.Text);
+                                    cmd.Parameters.AddWithValue("@correct", a.IsCorrect ? 1 : 0);
+                                    a.Id = (int)(long)cmd.ExecuteScalar();
+                                }
+                            }
+                            else
+                            {
+                                string sqlA = "UPDATE Answers SET answer_text=@text, is_correct=@correct WHERE answer_id=@aid";
+                                using (var cmd = new SQLiteCommand(sqlA, conn))
+                                {
+                                    cmd.Parameters.AddWithValue("@text", a.Text);
+                                    cmd.Parameters.AddWithValue("@correct", a.IsCorrect ? 1 : 0);
+                                    cmd.Parameters.AddWithValue("@aid", a.Id);
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
+                        }
+                    }
+
+                    transaction.Commit();
+                }
+                catch { transaction.Rollback(); throw; }
+            }
+        }
+    }
+
 }
