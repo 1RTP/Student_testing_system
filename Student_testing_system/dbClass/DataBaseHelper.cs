@@ -338,72 +338,88 @@ public class DatabaseHelper
         using (var conn = new SQLiteConnection(ConnectionString))
         {
             conn.Open();
-            using (var transaction = conn.BeginTransaction())
+
+            using (var tr = conn.BeginTransaction())
             {
-                try
+                string sqlTest = "UPDATE Tests SET title=@t, description=@d WHERE test_id=@id";
+                using (var cmd = new SQLiteCommand(sqlTest, conn))
                 {
-                    string sqlTest = "UPDATE Tests SET title=@title, description=@desc WHERE test_id=@id";
-                    using (var cmd = new SQLiteCommand(sqlTest, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@title", test.Title);
-                        cmd.Parameters.AddWithValue("@desc", test.Description);
-                        cmd.Parameters.AddWithValue("@id", test.Id);
-                        cmd.ExecuteNonQuery();
-                    }
-
-                    foreach (var q in test.Questions)
-                    {
-                        if (q.Id == 0)
-                        {
-                            string sqlQ = "INSERT INTO Questions (test_id, question_text) VALUES (@tid,@text); SELECT last_insert_rowid();";
-                            using (var cmd = new SQLiteCommand(sqlQ, conn))
-                            {
-                                cmd.Parameters.AddWithValue("@tid", test.Id);
-                                cmd.Parameters.AddWithValue("@text", q.Text);
-                                q.Id = (int)(long)cmd.ExecuteScalar();
-                            }
-                        }
-                        else
-                        {
-                            string sqlQ = "UPDATE Questions SET question_text=@text WHERE question_id=@qid";
-                            using (var cmd = new SQLiteCommand(sqlQ, conn))
-                            {
-                                cmd.Parameters.AddWithValue("@text", q.Text);
-                                cmd.Parameters.AddWithValue("@qid", q.Id);
-                                cmd.ExecuteNonQuery();
-                            }
-                        }
-
-                        foreach (var a in q.Answers)
-                        {
-                            if (a.Id == 0) 
-                            {
-                                string sqlA = "INSERT INTO Answers (question_id, answer_text, is_correct) VALUES (@qid,@text,@correct); SELECT last_insert_rowid();";
-                                using (var cmd = new SQLiteCommand(sqlA, conn))
-                                {
-                                    cmd.Parameters.AddWithValue("@qid", q.Id);
-                                    cmd.Parameters.AddWithValue("@text", a.Text);
-                                    cmd.Parameters.AddWithValue("@correct", a.IsCorrect ? 1 : 0);
-                                    a.Id = (int)(long)cmd.ExecuteScalar();
-                                }
-                            }
-                            else
-                            {
-                                string sqlA = "UPDATE Answers SET answer_text=@text, is_correct=@correct WHERE answer_id=@aid";
-                                using (var cmd = new SQLiteCommand(sqlA, conn))
-                                {
-                                    cmd.Parameters.AddWithValue("@text", a.Text);
-                                    cmd.Parameters.AddWithValue("@correct", a.IsCorrect ? 1 : 0);
-                                    cmd.Parameters.AddWithValue("@aid", a.Id);
-                                    cmd.ExecuteNonQuery();
-                                }
-                            }
-                        }
-                    }
-
-                    transaction.Commit();
+                    cmd.Parameters.AddWithValue("@t", test.Title);
+                    cmd.Parameters.AddWithValue("@d", test.Description);
+                    cmd.Parameters.AddWithValue("@id", test.Id);
+                    cmd.ExecuteNonQuery();
                 }
-                catch { transaction.Rollback(); throw; }
+
+                string sqlDelete = @"DELETE FROM Answers WHERE question_id IN (SELECT question_id FROM Questions WHERE test_id=@tid);
+                    DELETE FROM Questions WHERE test_id=@tid;";
+
+                using (var cmd = new SQLiteCommand(sqlDelete, conn))
+                {
+                    cmd.Parameters.AddWithValue("@tid", test.Id);
+                    cmd.ExecuteNonQuery();
+                }
+
+                foreach (var q in test.Questions)
+                {
+                    string sqlQ = "INSERT INTO Questions (test_id, question_text) VALUES (@tid,@qt); SELECT last_insert_rowid();";
+
+                    long qId;
+                    using (var cmd = new SQLiteCommand(sqlQ, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@tid", test.Id);
+                        cmd.Parameters.AddWithValue("@qt", q.Text);
+                        qId = (long)cmd.ExecuteScalar();
+                    }
+
+                    foreach (var a in q.Answers)
+                    {
+                        string sqlA = "INSERT INTO Answers (question_id, answer_text, is_correct) VALUES (@qid,@at,@c)";
+
+                        using (var cmd = new SQLiteCommand(sqlA, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@qid", qId);
+                            cmd.Parameters.AddWithValue("@at", a.Text);
+                            cmd.Parameters.AddWithValue("@c", a.IsCorrect ? 1 : 0);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+
+                tr.Commit();
+            }
+        }
+    }
+
+    public static void SaveResult(int userId, int testId, int score, int maxScore)
+    {
+        using (var conn = new SQLiteConnection(ConnectionString))
+        {
+            conn.Open();
+            string sql = @" INSERT INTO Results (user_id, test_id, score, max_score) VALUES (@u, @t, @s, @m); ";
+
+            using (var cmd = new SQLiteCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@u", userId);
+                cmd.Parameters.AddWithValue("@t", testId);
+                cmd.Parameters.AddWithValue("@s", score);
+                cmd.Parameters.AddWithValue("@m", maxScore);
+
+                cmd.ExecuteNonQuery();
+            }
+        }
+    }
+
+    public static int GetQuestionCount(int testId)
+    {
+        using (var conn = new SQLiteConnection(ConnectionString))
+        {
+            conn.Open();
+            string sql = "SELECT COUNT(*) FROM Questions WHERE test_id = @tid";
+
+            using (var cmd = new SQLiteCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@tid", testId);
+                return Convert.ToInt32(cmd.ExecuteScalar());
             }
         }
     }
